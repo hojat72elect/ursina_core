@@ -380,10 +380,11 @@ class Mesh(p3d.NodePath):
 
     @property
     def thickness(self):
-        return self.getRenderModeThickness()
+        return getattr(self, '_thickness', 1)
 
     @thickness.setter
     def thickness(self, value):
+        self._thickness = value
         self.setRenderModeThickness(value)
 
     def generate_normals(self, smooth=True, regenerate=True):
