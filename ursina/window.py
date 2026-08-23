@@ -7,6 +7,7 @@ from ursina import application, color, input_handler
 from ursina.scene import instance as scene  # for toggling collider visibility
 from ursina.string_utilities import print_info, print_warning
 from ursina.vec2 import Vec2
+from ursina.shaders.text_with_shadows_shader import text_with_shadows_shader
 
 
 class Window(WindowProperties):
@@ -17,6 +18,7 @@ class Window(WindowProperties):
         loadPrcFileData('', f'sync-video {vsync}')
         loadPrcFileData('', 'coordinate-system y-up-left')
         loadPrcFileData('', 'textures-auto-power-2 #t')
+        # loadPrcFileData('', 'framebuffer-alpha #t')
 
         loadPrcFileData('', 'notify-level-util error')
         loadPrcFileData('', 'load-file-type p3assimp')
@@ -160,7 +162,7 @@ class Window(WindowProperties):
             elif combined_key == 'control+f10':
                 self.toggle_editor_camera()
 
-        self.input_entity = Entity(name='window.input_entity', input=window_input, ignore_paused=True)
+        self.input_entity = Entity(name='window.input_entity', input=window_input, ignore_paused=True, eternal=True)
 
         self.exit_button = Button(parent=self.editor_ui, text='x', eternal=True, ignore_paused=True, origin=(.5, .5), enabled=self.borderless and application.development_mode, position=self.top_right, z=-999, scale=(.05, .025), color=color.red.tint(-.2), shortcuts=('control+shift+alt+q', 'alt+f4'), on_click=application.quit, name='exit_button')
 
@@ -169,8 +171,9 @@ class Window(WindowProperties):
                 self.exit_button.on_click()
         self.exit_button.input = _exit_button_input
 
-        self.fps_counter = Text(parent=self.editor_ui, eternal=True, text='60', ignore=False, i=0, ignore_paused=True,
-            position=((.5*self.aspect_ratio)-self.exit_button.scale_x, .47+(.02*(not self.exit_button.enabled)), -999))
+        text_with_shadows_shader.default_input['shadow_offset'] = Vec2(.01,-.01)
+        self.fps_counter = Text(parent=self.editor_ui, eternal=True, origin=(.5,.5), text='60', ignore=False, i=0, ignore_paused=True,
+            position=((.5*self.aspect_ratio)-.01, .47+(.02*(not self.exit_button.enabled)), -999), shader=text_with_shadows_shader)
 
         def _fps_counter_update():
             if self.fps_counter.i > 60:
@@ -179,20 +182,20 @@ class Window(WindowProperties):
             self.fps_counter.i += 1
         self.fps_counter.update = _fps_counter_update
 
-        self.entity_counter = Text(parent=self.editor_ui, enabled=application.development_mode, eternal=True, origin=(-.5,.5), text='00', ignore=False, t=0,
-            position=((.5*self.aspect_ratio)-self.exit_button.scale_x, .425+(.02*(not self.exit_button.enabled)), -999))
-        self.entity_counter.text_entity = Text(parent=self.entity_counter, text='entities:', origin=(-.5,-.75), scale=.4, add_to_scene_entities=False, eternal=True)
+        self.entity_counter = Text(parent=self.editor_ui, enabled=application.development_mode, eternal=True, shader=text_with_shadows_shader, origin=(.5,.5), text='00', ignore=False, t=0,
+            position=((.5*self.aspect_ratio)-.01, .425+(.02*(not self.exit_button.enabled)), -999))
+        self.entity_counter.text_entity = Text(parent=self.entity_counter, text='entities:', origin=(.5,-.75), scale=.4, add_to_scene_entities=False, eternal=True, shader=text_with_shadows_shader)
 
         def _entity_counter_update():
             if self.entity_counter.t > 1:
-                self.entity_counter.text = str(max(0, len([e for e in scene.entities if e.model and not e.has_disabled_ancestor()])-5))
+                self.entity_counter.text = str(len([e for e in scene.entities if e and not e.eternal]))
                 self.entity_counter.i = 0
             self.entity_counter.t += time.dt
         self.entity_counter.update = _entity_counter_update
 
-        self.collider_counter = Text(parent=self.editor_ui, enabled=application.development_mode, eternal=True, origin=(-.5,.5), text='00', ignore=False, t=.1,
-            position=((.5*self.aspect_ratio)-self.exit_button.scale_x, .38+(.02*(not self.exit_button.enabled)), -999))
-        self.collider_counter.text_entity = Text(parent=self.collider_counter, text='colliders:', origin=(-.5,-.75), scale=.4, add_to_scene_entities=False, eternal=True)
+        self.collider_counter = Text(parent=self.editor_ui, enabled=application.development_mode, eternal=True, origin=(.5,.5), text='00', ignore=False, t=.1,
+            position=((.5*self.aspect_ratio)-.01, .38+(.02*(not self.exit_button.enabled)), -999), shader=text_with_shadows_shader)
+        self.collider_counter.text_entity = Text(parent=self.collider_counter, text='colliders:', origin=(.5,-.75), scale=.4, add_to_scene_entities=False, eternal=True, shader=text_with_shadows_shader)
 
         def _collider_counter_update():
             if self.collider_counter.t > 1:
@@ -228,8 +231,8 @@ class Window(WindowProperties):
         self.cog_button = Button(parent=self.editor_ui, eternal=True, model='quad', texture='cog', scale=.015, origin=(1,-1), position=self.bottom_right, ignore_paused=True, name='cog_button', enabled=application.development_mode)
         self.cog_menu.y = self.cog_button.y + (self.cog_menu.bg.scale_y * self.cog_menu.scale_y) + Text.size
         info_text ='''This menu is not enabled in builds. To see how the app will look like in builds, do Ursina(development_mode=False), which will disable all editor ui and start the app in fullscreen. To disable only this menu, do window.cog_menu.enabled = False'''
-        self.cog_menu.info = Button(parent=self.cog_menu, model='circle', text='<gray>?', scale=.025, origin=(.5,-.5), tooltip=Tooltip(info_text, scale=.75, origin=(-.5,-.5), eternal=True), eternal=True, name='cog_menu_info')
-        self.cog_menu.info.text_entity.scale *= .75
+        self.cog_menu.info = Button(parent=self.cog_menu, model='circle', text_size=.75, text='<gray>?', scale=.025, origin=(.5,-.5), eternal=True, name='cog_menu_info')
+        self.cog_menu.info.tooltip = Tooltip(info_text, scale=.75, origin=(-.5,-.5), eternal=True)
         def _toggle_cog_menu():
             self.cog_menu.enabled = not self.cog_menu.enabled
         self.cog_button.on_click = _toggle_cog_menu
@@ -520,6 +523,7 @@ instance = Window()
 
 if __name__ == '__main__':
     from ursina import *
+    application.trace_entity_definition = True
     # application.development_mode = False
     # app = Ursina(borderless=True, forced_aspect_ratio=16/9)
     app = Ursina(
@@ -531,38 +535,41 @@ if __name__ == '__main__':
         # development_mode=False,
         vsync = False,
         )
-    button_list = ButtonList(
-        {
-        'widow.position = Vec2(0,0)': Func(setattr, window, 'position', Vec2(0,0)),
-        'widow.size = Vec2(512,512)': Func(setattr, window, 'size', Vec2(512,512)),
-        'widow.center_on_screen()': window.center_on_screen,
+    # button_list = ButtonList(
+    #     {
+    #     'widow.position = Vec2(0,0)': Func(setattr, window, 'position', Vec2(0,0)),
+    #     'widow.size = Vec2(512,512)': Func(setattr, window, 'size', Vec2(512,512)),
+    #     'widow.center_on_screen()': window.center_on_screen,
 
-        'widow.borderless = True': Func(setattr, window, 'borderless', True),
-        'widow.borderless = False': Func(setattr, window, 'borderless', False),
+    #     'widow.borderless = True': Func(setattr, window, 'borderless', True),
+    #     'widow.borderless = False': Func(setattr, window, 'borderless', False),
 
-        'widow.fullscreen = True': Func(setattr, window, 'fullscreen', True),
-        'widow.fullscreen = False': Func(setattr, window, 'fullscreen', False),
+    #     'widow.fullscreen = True': Func(setattr, window, 'fullscreen', True),
+    #     'widow.fullscreen = False': Func(setattr, window, 'fullscreen', False),
 
-        'widow.vsync = True': Func(setattr, window, 'vsync', True),
-        'widow.vsync = False': Func(setattr, window, 'vsync', False),
+    #     'widow.vsync = True': Func(setattr, window, 'vsync', True),
+    #     'widow.vsync = False': Func(setattr, window, 'vsync', False),
 
 
-        'application.base.win.request_properties(self)': Func(application.base.win.request_properties, window),
+    #     'application.base.win.request_properties(self)': Func(application.base.win.request_properties, window),
 
-        }, y=0
-    )
-    startup_value = Text(y=.5,x=-.5)
-    startup_value.text = f'''
-        position: {window.position}
-        size: {window.size}
-        aspect_ratio: {window.aspect_ratio}
-        window.main_monitor.width: {window.main_monitor.width}
-        window.main_monitor.height: {window.main_monitor.height}
+    #     }, y=0
+    # )
+    # startup_value = Text(y=.5,x=-.5)
+    # startup_value.text = f'''
+    #     position: {window.position}
+    #     size: {window.size}
+    #     aspect_ratio: {window.aspect_ratio}
+    #     window.main_monitor.width: {window.main_monitor.width}
+    #     window.main_monitor.height: {window.main_monitor.height}
 
-    '''
+    # '''
 
-    position_text = Text(y=.5,)
+    # position_text = Text(y=.5)
 
+# if __name__ == '__main__':
+#     from hyposolus import preprocessor
+#     _________________AUTOMATIC_NAME_TEST__________ = Entity()
     # def update():
     #     position_text.text = f'''
     #         position: {window.position}
@@ -579,6 +586,11 @@ if __name__ == '__main__':
             # y = window.main_monitor.y + ((window.main_monitor.height - window.size[1]) / 2)
             # window.position = Vec2(x,y)
             window.center_on_screen()
+        if key == 'p':
+            for e in scene.entities:
+                if not e.eternal:
+                    print(e.name)
+
 
     # window.borderless = False
     # window.fullscreen = True
@@ -596,6 +608,7 @@ if __name__ == '__main__':
     # window.fps_counter.enabled = False
     # window.cog_button.enabled = False
     # window.position =(0,837)
+    window.color =color.white
 
     # camera.orthographic = True
     # camera.fov = 2
@@ -604,5 +617,5 @@ if __name__ == '__main__':
     #     if key == 'space':
     #         window.center_on_screen()
 
-    Entity(model='cube', color=color.green, collider='box', texture='shore')
+    # Entity(model='cube', color=color.green, collider='box', texture='shore')
     app.run()
