@@ -138,6 +138,8 @@ class Texture():
     def get_pixel(self, x, y):
         col = self.get_pixel_raw(x, y)
 
+        if isinstance(col, int):
+            col = (col, col, col)
         if self._cached_image.mode == 'LA':
             col = (col[0], col[0], col[0], col[1])
         elif self._cached_image.mode == 'L':
