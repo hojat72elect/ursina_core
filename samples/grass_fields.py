@@ -1,3 +1,11 @@
+"""
+I have added a fix to texture.py without which this script will throw a runtime error.
+Right now, that fix doesn't exist in my own game examples (which are using the vanilla Ursina).
+
+Long story short, we can only move this example to my repo when we have merged the Ursina framework into my project.
+Until then, this script will stay here.
+"""
+
 from ursina import *
 from ursina.shaders import lit_with_shadows_shader
 random.seed(0)
