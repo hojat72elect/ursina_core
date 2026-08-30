@@ -47,7 +47,6 @@ extra = [
     "imageio>=2.37.2",
     "numpy>=2.3.5",
     "psutil>=7.1.3",
-    "thumbhash-python>=1.0.1",
     "tripy>=1.0.0",
 ]
 
